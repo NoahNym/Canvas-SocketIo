@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw.io</title>
+</head>
+
+
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+        font-family: sans-serif;
+    }
+
+    body {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgb(31, 28, 51);
+        color: white;
+    }
+
+    header {
+        margin: 1rem 1rem 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        padding: 1rem 3rem;
+        align-items: center;
+        height: 84px;
+        font-size: 1rem;
+
+
+    }
+
+    #color_width {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .color-picker {
+        margin-right: 20px;
+        height: 60px;
+        width: 60px;
+        padding: 0.1rem 0.2rem;
+        border: 3px solid black;
+        border-radius: 5px;
+    }
+
+    canvas {
+        border: 5px solid rgb(110, 113, 139);
+        background: white;
+        margin-left: 2rem;
+        display: block;
+        border-radius: 10px;
+        width: 94%;
+        height: 80%;
+
+    }
+
+    canvas:hover {
+        cursor: crosshair;
+    }
+
+    #players {
+        background: red;
+
+
+    }
+
+    #page {
+        height: 100%;
+    }
+
+
+
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+
+
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+
+
+
+
+
+    #awd {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        width: 30vw;
+        height: 95%;
+        color: black;
+        border: 5px solid rgb(110, 113, 139);
+        background: rgb(255, 255, 255);
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        overflow-y: auto;
+        flex-wrap: wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    #input {
+        position: sticky;
+        bottom: 1000;
+        width: 93%;
+        margin-bottom: 1rem;
+        height: 30px;
+    }
+</style>
+
+<body>
+    <div id="page">
+        <header>
+            <div id="color_width">
+                <input type="color" class="js-color-picker  color-picker">
+                <input type="range" class="js-line-range" min="1" max="200" value="1">
+                <label class="js-range-value">1</label>Px
+            </div>
+
+
+        </header>
+        <div id="players"></div>
+        <canvas class=" js-paint  paint-canvas" width="950px" height="600px"></canvas>
+    </div>
+
+
+
+    <form id="awd" action="">
+        <ul id="messages"></ul>
+        <input id="input" autocomplete="off" />
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('awd');
+        var input = document.getElementById('input');
+
+        //sends a message to socket.io
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+
+        //updates the chat when a new message is sent
+        socket.on('chat message', function (msg) {
+            var item = document.createElement('li');
+            item.textContent = msg;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+    </script>
+
+
+
+    <script>
+        window.onload = function () {
+
+
+
+            const canvas = document.querySelector("canvas")
+
+            const paintCanvas = document.querySelector(".js-paint");
+            const ctx = paintCanvas.getContext('2d');
+
+
+            const normalizeCoordinates = (x, y) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                return {
+                    x: (x - rect.left) * scaleX,
+                    y: (y - rect.top) * scaleY
+                };
+            };
+
+
+            //wich shape gets drawn
+            ctx.lineCap = 'round';
+
+            //gets the color picker
+            const colorPicker = document.querySelector('.js-color-picker');
+
+            //change what color to draw with when color is changed with the color picker
+            colorPicker.addEventListener('change', event => {
+                const color = event.target.value;
+                socket.emit("sendColor", color);
+            });
+
+            socket.on("sendColor", color => {
+                colorPicker.value = color;
+            });
+
+            //gets width slider
+            const lineWidthRange = document.querySelector('.js-line-range');
+            const lineWidthLabel = document.querySelector('.js-range-value');
+
+            //change line width when the slider is moved
+            lineWidthRange.addEventListener('input', event => {
+                const width = event.target.value;
+                lineWidthLabel.innerHTML = width;
+                socket.emit("sendDrawWidth", width);
+            });
+
+            socket.on("sendDrawWidth", width => {
+                ctx.lineWidth = width;
+                lineWidthLabel.innerHTML = width;
+                lineWidthRange.value = width; // Update the range input value
+            });
+
+            // send the current line width to all clients when they connect
+            socket.on("connect", () => {
+                socket.emit("sendDrawWidth", lineWidthRange.value);
+            });
+
+            //coordinates for the canvas
+            let coord = { x: 0, y: 0 };
+
+            let isMouseDown = false;
+
+
+
+
+            //start or stop drawing based on mouse inputs and if hovering the canvas
+            const stopDrawing = () => {
+                isMouseDown = false;
+
+            }
+            const startDrawing = (event) => {
+                isMouseDown = true;
+
+                document.addEventListener("mousemove", drawLine)
+                // updates the coordinates to draw on  on the canvas
+                const coords = normalizeCoordinates(event.clientX, event.clientY);
+                coord = { x: coords.x, y: coords.y };
+
+                //sends the new coordinates to socket.io
+                socket.emit("coordEnd", { coord })
+            }
+            // send data to socket.io
+            const drawLine = (event) => {
+                if (isMouseDown) {
+                    const coords = normalizeCoordinates(event.clientX, event.clientY);
+
+                    socket.emit("draw", {
+                        x: coords.x,
+                        y: coords.y
+                    });
+                }
+            };
+            //socket.on detects functions being used in socket.io and runs a new function 
+
+            // send the end and begging of a stroke to prevent de-syncing with the drawings on multiple devices
+            socket.on("coordstart", (data) => {
+
+
+                coord = { ...data }
+            })
+            socket.on("coordEnd", (data) => {
+
+
+                coord = { ...data }
+            })
+
+            //draw on the canvas with recieved data from socket.io
+            socket.on("draw", (event) => {
+                const coords = normalizeCoordinates(event.x, event.y);
+                ctx.beginPath();
+                ctx.lineCap = "round"
+
+                //draw to the coordinates once they update
+                ctx.moveTo(coord.x, coord.y);
+                coord.x = event.x;
+                coord.y = event.y;
+                ctx.lineTo(coord.x, coord.y);
+                ctx.stroke();
+
+
+
+
+            });
+
+            //detects changes to the width slider and applies them
+            socket.on("sendDrawWidth", width => {
+                ctx.lineWidth = width
+            });
+
+            //detects changes to the color picker and applies them
+            socket.on("sendColor", color => {
+                ctx.strokeStyle = color
+            });
+
+            paintCanvas.addEventListener('mousedown', startDrawing);
+            paintCanvas.addEventListener('mousedown', drawLine);
+            paintCanvas.addEventListener('mousemove', drawLine);
+            paintCanvas.addEventListener('mouseup', stopDrawing);
+            paintCanvas.addEventListener('mouseout', stopDrawing);
+
+            //makes the coordinates line up corectly if the page is zoomed in
+            function resizeCanvas() {
+                const { width, height } = canvas.getBoundingClientRect();
+                canvas.width = width;
+                canvas.height = height;
+            }
+            resizeCanvas();
+
+
+        }
+    </script>
+
+</body>
+
+</html>
