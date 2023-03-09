@@ -61,9 +61,7 @@
         margin-left: 2rem;
         display: block;
         border-radius: 10px;
-        width: 94%;
-        height: 80%;
-
+        image-rendering: optimizeQuality
     }
 
     canvas:hover {
@@ -104,8 +102,8 @@
 
 
     #awd {
-        position: fixed;
-        bottom: 0;
+        position: relative;
+        bottom: 10;
         right: 0;
         width: 30vw;
         height: 95%;
@@ -118,14 +116,16 @@
         flex-wrap: wrap;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        margin-right: 15px;
+        font-size: 1.3rem;
     }
 
     #input {
-        position: sticky;
-        bottom: 1000;
-        width: 93%;
-        margin-bottom: 1rem;
+        position: fixed;
+        width: 542px;
         height: 30px;
+        bottom: 2.5rem;
+        right: 2rem;
     }
 </style>
 
@@ -141,7 +141,7 @@
 
         </header>
         <div id="players"></div>
-        <canvas class=" js-paint  paint-canvas" width="950px" height="600px"></canvas>
+        <canvas class=" js-paint  paint-canvas" width="1240px" height="750px"></canvas>
     </div>
 
 
@@ -152,43 +152,45 @@
     </form>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        var socket = io();
+  var socket = io();
 
-        var messages = document.getElementById('messages');
-        var form = document.getElementById('awd');
-        var input = document.getElementById('input');
+  // Get DOM elements
+  var messages = document.getElementById('messages');
+  var form = document.getElementById('awd');
+  var input = document.getElementById('input');
 
-        //sends a message to socket.io
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (input.value) {
-                socket.emit('chat message', input.value);
-                input.value = '';
-            }
-        });
+  // Get username from prompt and assign it to socket ID
+  var username = prompt("Please enter your username:");
+  socket.emit('set username', username);
 
-        //updates the chat when a new message is sent
-        socket.on('chat message', function (msg) {
-            var item = document.createElement('li');
-            item.textContent = msg;
-            messages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-        });
-    </script>
+  // Send a message to Socket.IO
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (input.value) {
+      socket.emit('chat message', input.value);
+      input.value = '';
+    }
+  });
 
+  // Update the chat when a new message is sent
+  socket.on('chat message', function (msg) {
+    var item = document.createElement('li');
+    item.textContent = msg;
+    messages.appendChild(item);
+    window.scrollTo(0, document.body.scrollHeight);
+  });
+</script>
 
 
     <script>
         window.onload = function () {
 
-
-
+            // Get canvas element and context
             const canvas = document.querySelector("canvas")
-
             const paintCanvas = document.querySelector(".js-paint");
-            const ctx = paintCanvas.getContext('2d');
+            const ctx = canvas.getContext('2d');
 
-
+            // Normalize coordinates based on canvas size
             const normalizeCoordinates = (x, y) => {
                 const rect = canvas.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
@@ -200,14 +202,13 @@
                 };
             };
 
-
-            //wich shape gets drawn
+            // Set line cap to round
             ctx.lineCap = 'round';
 
-            //gets the color picker
+            // Get color picker
             const colorPicker = document.querySelector('.js-color-picker');
 
-            //change what color to draw with when color is changed with the color picker
+            // Change brush color when color picker is changed
             colorPicker.addEventListener('change', event => {
                 const color = event.target.value;
                 socket.emit("sendColor", color);
@@ -215,13 +216,14 @@
 
             socket.on("sendColor", color => {
                 colorPicker.value = color;
+                ctx.color = color
             });
 
-            //gets width slider
+            // Get brush width slider and label
             const lineWidthRange = document.querySelector('.js-line-range');
             const lineWidthLabel = document.querySelector('.js-range-value');
 
-            //change line width when the slider is moved
+            // Change brush width when slider is moved
             lineWidthRange.addEventListener('input', event => {
                 const width = event.target.value;
                 lineWidthLabel.innerHTML = width;
@@ -234,13 +236,13 @@
                 lineWidthRange.value = width; // Update the range input value
             });
 
-            // send the current line width to all clients when they connect
+            // Send the current brush width to all clients when they connect
             socket.on("connect", () => {
                 socket.emit("sendDrawWidth", lineWidthRange.value);
             });
 
-            //coordinates for the canvas
-            let coord = { x: 0, y: 0 };
+            // Define variables for tracking drawing state and coordinates
+            let coord = { x: 0, y: 0 }
 
             let isMouseDown = false;
 
@@ -288,12 +290,11 @@
                 coord = { ...data }
             })
 
-            //draw on the canvas with recieved data from socket.io
+            //draws on every canvas with recieved data from the socket
             socket.on("draw", (event) => {
                 const coords = normalizeCoordinates(event.x, event.y);
                 ctx.beginPath();
                 ctx.lineCap = "round"
-
                 //draw to the coordinates once they update
                 ctx.moveTo(coord.x, coord.y);
                 coord.x = event.x;
