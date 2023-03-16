@@ -302,14 +302,6 @@
             paintCanvas.addEventListener('mouseup', stopDrawing);
             paintCanvas.addEventListener('mouseout', stopDrawing);
 
-            //makes the coordinates line up corectly if the page is zoomed in
-            function resizeCanvas() {
-                const { width, height } = canvas.getBoundingClientRect();
-                canvas.width = width;
-                canvas.height = height;
-            }
-            resizeCanvas();
-
             // Listen for "vote" event
             socket.on("vote", function () {
                 console.log("A vote has been cast!");
