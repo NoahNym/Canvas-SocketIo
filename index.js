@@ -70,7 +70,7 @@ io.on('connection', (socket) => {
         // Emit the number of players online to all sockets
         io.emit(`playersOnline`, players)
 
-        // send a message that a user disconnected and If the user had previously voted, remove their vote and emit a message to update the vote count and 
+        // send a message that a user disconnected and If the user had previously voted, remove their vote and emit a message to update the vote count 
         io.emit('chat message', `${socket.username} disconnected`);
         if (votedUsers.has(socket.id)) {
             votedUsers.delete(socket.id);
@@ -81,6 +81,8 @@ io.on('connection', (socket) => {
             io.emit('votes', votes);
         }
     });
+
+    // io.emit sends a function and data back to all clients
 
     // Emit the current vote count to the newly connected user
     socket.emit('votes', votes);
