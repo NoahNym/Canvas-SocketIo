@@ -168,7 +168,6 @@
     <script>
         var socket = io();
 
-        // Get DOM elements
         var messages = document.getElementById('messages');
         var form = document.getElementById('awd');
         var input = document.getElementById('input');
@@ -177,7 +176,7 @@
         var username = prompt("Please enter your username:");
         socket.emit('set username', username);
 
-        // Send a message to Socket.IO
+        // Send a message to the Socket
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value) {
@@ -192,9 +191,7 @@
             item.textContent = msg;
             messages.appendChild(item);
             window.scrollTo(0, document.body.scrollHeight);
-
         });
-
 
         window.onload = function () {
             // Get canvas element and context
@@ -255,12 +252,13 @@
                 ctx.lineWidth = width;
                 lineWidthLabel.innerHTML = width;
                 lineWidthRange.value = width; // Update the range input value
+
             });
 
             // Send the current brush width to all clients when they connect
             socket.on("connect", () => {
                 socket.emit("sendDrawWidth", lineWidthRange.value);
-                socket.emit("sendColor", color);
+                socket.emit("sendColor",colorPicker.value)
             });
 
             // Define variables for tracking drawing state and coordinates

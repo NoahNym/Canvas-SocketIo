@@ -28,11 +28,6 @@ let votes = 0;
 // Set up socket.io connection and define event handlers
 io.on('connection', (socket) => {
 
-
-
-
-
-
     // Calculate the threshold number of votes needed to reset the canvas
     const threshold = Math.floor((io.engine.clientsCount / 2) + 1);
 
@@ -82,7 +77,7 @@ io.on('connection', (socket) => {
             if (votes > 0) {
                 votes--;
             }
-            
+
             io.emit('votes', votes);
         }
     });
@@ -104,13 +99,13 @@ io.on('connection', (socket) => {
             votedUsers.delete(socket.id);
             if (votes > 0) {
                 if (votes <= threshold) {
-                
+
                     votes--;
                     io.emit('chat message', `${socket.username} removed their vote`)
                 }
             }
         } else {
- 
+
             // If the user has not voted yet, add their vote and notify all connected users
             io.emit('chat message', `${socket.username} voted to reset the canvas`)
             votedUsers.add(socket.id);
