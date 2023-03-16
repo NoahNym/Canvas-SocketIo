@@ -107,10 +107,10 @@
 
 
     #awd {
-        
+        position: absolute;
         bottom: 10;
         right: 0;
-        width: 30%;
+        width: 30vw;
         height: 95%;
         color: black;
         border: 5px solid rgb(110, 113, 139);
@@ -123,16 +123,17 @@
         overflow-wrap: break-word;
         margin-right: 15px;
         font-size: 1.3rem;
+        padding-bottom: 3.5rem;
     }
 
     #input {
         position:fixed;
-        width: 28%;
+        width: 28vw;
         height: 30px;
         bottom: 2.5rem;
         right: 2rem;
     }
-
+ 
     #refresh {
         border-radius: 10px;
         padding: 1rem;
@@ -193,12 +194,9 @@
             window.scrollTo(0, document.body.scrollHeight);
 
         });
-    </script>
 
 
-    <script>
         window.onload = function () {
-            document.body.style.zoom = "100%"
             // Get canvas element and context
             const canvas = document.querySelector("canvas")
             const paintCanvas = document.querySelector(".js-paint");
