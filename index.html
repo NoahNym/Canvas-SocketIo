@@ -10,6 +10,8 @@
 
 
 <style>
+
+
     * {
         padding: 0;
         margin: 0;
@@ -19,6 +21,7 @@
     }
 
     body {
+    
         height: 100vh;
         width: 100vw;
         display: flex;
@@ -26,6 +29,7 @@
         justify-content: space-between;
         background: rgb(31, 28, 51);
         color: white;
+        zoom: 100%;
     }
 
     header {
@@ -56,7 +60,8 @@
     }
 
     canvas {
-        border: 5px solid rgb(110, 113, 139);
+
+        outline: 5px solid rgb(110, 113, 139);
         background: white;
         margin-left: 2rem;
         display: block;
@@ -102,10 +107,10 @@
 
 
     #awd {
-        position: relative;
+        
         bottom: 10;
         right: 0;
-        width: 30vw;
+        width: 30%;
         height: 95%;
         color: black;
         border: 5px solid rgb(110, 113, 139);
@@ -121,11 +126,16 @@
     }
 
     #input {
-        position: fixed;
-        width: 542px;
+        position:fixed;
+        width: 28%;
         height: 30px;
         bottom: 2.5rem;
         right: 2rem;
+    }
+
+    #refresh {
+        border-radius: 10px;
+        padding: 1rem;
     }
 </style>
 
@@ -136,11 +146,14 @@
                 <input type="color" class="js-color-picker  color-picker">
                 <input type="range" class="js-line-range" min="1" max="200" value="1">
                 <label class="js-range-value">1</label>Px
+
+
             </div>
-
-
+            <button id="refresh">Refresh Canvas <span id="votesDisplay"></span><span id="vote-count">0</span></button>
+            <div>
+                <span>Players:</span><span id="playerCount">1</span>
+            </div>
         </header>
-        <div id="players"></div>
         <canvas class=" js-paint  paint-canvas" width="1240px" height="750px"></canvas>
     </div>
 
@@ -152,55 +165,69 @@
     </form>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-  var socket = io();
+        var socket = io();
 
-  // Get DOM elements
-  var messages = document.getElementById('messages');
-  var form = document.getElementById('awd');
-  var input = document.getElementById('input');
+        // Get DOM elements
+        var messages = document.getElementById('messages');
+        var form = document.getElementById('awd');
+        var input = document.getElementById('input');
 
-  // Get username from prompt and assign it to socket ID
-  var username = prompt("Please enter your username:");
-  socket.emit('set username', username);
+        // Get username from prompt and assign it to socket ID
+        var username = prompt("Please enter your username:");
+        socket.emit('set username', username);
 
-  // Send a message to Socket.IO
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (input.value) {
-      socket.emit('chat message', input.value);
-      input.value = '';
-    }
-  });
+        // Send a message to Socket.IO
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
 
-  // Update the chat when a new message is sent
-  socket.on('chat message', function (msg) {
-    var item = document.createElement('li');
-    item.textContent = msg;
-    messages.appendChild(item);
-    window.scrollTo(0, document.body.scrollHeight);
-  });
-</script>
+        // Update the chat when a new message is sent
+        socket.on('chat message', function (msg) {
+            var item = document.createElement('li');
+            item.textContent = msg;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+
+        });
+    </script>
 
 
     <script>
         window.onload = function () {
-
+            document.body.style.zoom = "100%"
             // Get canvas element and context
             const canvas = document.querySelector("canvas")
             const paintCanvas = document.querySelector(".js-paint");
             const ctx = canvas.getContext('2d');
+            const votesDisplay = document.getElementById('votesDisplay');
+            const votesNeededDisplay = document.getElementById("vote-count")
+            const playerCount = document.getElementById("playerCount")
+            const refreshButton = document.getElementById('refresh');
+
 
             // Normalize coordinates based on canvas size
             const normalizeCoordinates = (x, y) => {
                 const rect = canvas.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
+                const offsetX = rect.left;
+                const offsetY = rect.top;
 
                 return {
-                    x: (x - rect.left) * scaleX,
-                    y: (y - rect.top) * scaleY
+                    x: (x - offsetX) * scaleX,
+                    y: (y - offsetY) * scaleY
                 };
             };
+
+
+
+
+
+
 
             // Set line cap to round
             ctx.lineCap = 'round';
@@ -229,11 +256,11 @@
                 lineWidthLabel.innerHTML = width;
                 socket.emit("sendDrawWidth", width);
             });
-
             socket.on("sendDrawWidth", width => {
                 ctx.lineWidth = width;
                 lineWidthLabel.innerHTML = width;
                 lineWidthRange.value = width; // Update the range input value
+
             });
 
             // Send the current brush width to all clients when they connect
@@ -292,7 +319,6 @@
 
             //draws on every canvas with recieved data from the socket
             socket.on("draw", (event) => {
-                const coords = normalizeCoordinates(event.x, event.y);
                 ctx.beginPath();
                 ctx.lineCap = "round"
                 //draw to the coordinates once they update
@@ -306,11 +332,9 @@
 
 
             });
+        
 
-            //detects changes to the width slider and applies them
-            socket.on("sendDrawWidth", width => {
-                ctx.lineWidth = width
-            });
+ 
 
             //detects changes to the color picker and applies them
             socket.on("sendColor", color => {
@@ -331,6 +355,45 @@
             }
             resizeCanvas();
 
+
+            // Listen for "vote" event
+            socket.on("vote", function () {
+                console.log("A vote has been cast!");
+                // Broadcast message to all clients
+                io.emit("message", "A vote has been cast!");
+            });
+
+            // Listen for "votes" event and update display
+            socket.on('votes', (votes) => {
+                votesDisplay.innerText = votes;
+            });
+
+            // Listen for "click" event on "refresh" button and emit "vote" event. when enough votes has been reached the canvas resets
+            refreshButton.addEventListener('click', function () {
+                socket.emit('vote');
+            });
+
+            // Listen for "resetCanvas" event and call "resetCanvas()" function
+            socket.on('resetCanvas', () => {
+                resetCanvas();
+            });
+
+            // Function to reset canvas
+            function resetCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.style.background = "white";
+                votesDisplay.innerText = "0"
+            }
+
+            // Listen for "votes threshold" event and update display
+            socket.on('votes threshold', (threshold) => {
+                votesNeededDisplay.innerText = "/" + threshold
+            })
+
+            // Listen for "playersOnline" event and update display
+            socket.on('playersOnline', (data) => {
+                playerCount.innerText = data
+            })
 
         }
     </script>
