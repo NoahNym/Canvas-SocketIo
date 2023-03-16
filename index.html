@@ -221,49 +221,46 @@
                 };
             };
 
-
-
-
-
-
-
-            // Set line cap to round
+            // Sets the drawing style to round
             ctx.lineCap = 'round';
 
             // Get color picker
             const colorPicker = document.querySelector('.js-color-picker');
 
-            // Change brush color when color picker is changed
+            // sends color when color picker is changed
             colorPicker.addEventListener('change', event => {
                 const color = event.target.value;
                 socket.emit("sendColor", color);
             });
 
+            //when the socket sends "sendColor" back the color of the brush changes
             socket.on("sendColor", color => {
                 colorPicker.value = color;
                 ctx.color = color
             });
 
-            // Get brush width slider and label
+            // Get width slider and label
             const lineWidthRange = document.querySelector('.js-line-range');
             const lineWidthLabel = document.querySelector('.js-range-value');
 
-            // Change brush width when slider is moved
+            // send brush width when slider is moved to the socket
             lineWidthRange.addEventListener('input', event => {
                 const width = event.target.value;
                 lineWidthLabel.innerHTML = width;
                 socket.emit("sendDrawWidth", width);
             });
+
+            // when the socket sends "sendDrawWidth" back the width of the brush changes
             socket.on("sendDrawWidth", width => {
                 ctx.lineWidth = width;
                 lineWidthLabel.innerHTML = width;
                 lineWidthRange.value = width; // Update the range input value
-
             });
 
             // Send the current brush width to all clients when they connect
             socket.on("connect", () => {
                 socket.emit("sendDrawWidth", lineWidthRange.value);
+                socket.emit("sendColor", color);
             });
 
             // Define variables for tracking drawing state and coordinates

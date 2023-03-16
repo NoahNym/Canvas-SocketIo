@@ -5,7 +5,6 @@ const http = require('http');
 const { userInfo } = require('os');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const { deflateRaw } = require('zlib');
 const io = require("socket.io")(server, {
     cors: {
         origin: "http://localhost:3000"
@@ -83,7 +82,7 @@ io.on('connection', (socket) => {
             if (votes > 0) {
                 votes--;
             }
-            console.log(`Removed vote from ${socket.username}`);
+            
             io.emit('votes', votes);
         }
     });
@@ -94,23 +93,24 @@ io.on('connection', (socket) => {
     // When a user votes to reset the canvas, update the vote count and notify all connected users
     socket.on('vote', () => {
         if (io.engine.clientsCount == 1) {
+
             // If the only user connected is the one who voted, reset the canvas immediately
             io.emit('resetCanvas');
             return;
         }
         if (votedUsers.has(socket.id)) {
+
             // If the user had already voted, remove their vote and notify all connected users
-            console.log("User has already voted. Removing vote...");
             votedUsers.delete(socket.id);
             if (votes > 0) {
-                if (votes >= threshold) {
-                    console.log("Threshold already reached. Not removing vote.");
-                } else {
+                if (votes <= threshold) {
+                
                     votes--;
                     io.emit('chat message', `${socket.username} removed their vote`)
                 }
             }
         } else {
+ 
             // If the user has not voted yet, add their vote and notify all connected users
             io.emit('chat message', `${socket.username} voted to reset the canvas`)
             votedUsers.add(socket.id);
@@ -119,8 +119,8 @@ io.on('connection', (socket) => {
         console.log(`Votes: ${votes}/${io.engine.clientsCount}`);
         io.emit('votes', votes);
         if (votes >= threshold) {
+
             // If the vote count reaches the threshold, reset the canvas and notify all connected users
-            console.log("Threshold reached!");
             votes = 0;
             io.emit('resetCanvas');
             votedUsers.clear()
